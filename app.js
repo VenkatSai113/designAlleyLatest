@@ -307,6 +307,31 @@ const jwtAuthenticateToken=(request,response,next)=>{
     })
   }
 }
+const userJwtAuthenticateToken=(request,response,next)=>{
+  let jwtToken;
+ 
+  const authHead=request.headers["authorization"]
+  if(authHead!== undefined){
+  jwtToken=authHead.split(" ") [1];
+  }
+  if(jwtToken===undefined){
+    response.status(401)
+    response.send(JSON.stringify("Unauthorized User"))
+  }
+  else{
+    jwt.verify(jwtToken,"user_login_token",(error,payload)=>{
+      if(error){
+        response.status(401)
+        response.send(JSON.stringify("Invalid Access Token"))
+      }
+      else{
+        request.userNumber=payload.phoneNumber  
+           
+        next()
+      }
+    })
+  }
+}
  // sending invitation by sms to Interior Desigener
 app.post("/invitationApi",jwtAuthenticateToken,jsonParser,async(request,response)=>{
  
@@ -359,7 +384,7 @@ app.post("/post/",jsonParser,jwtAuthenticateToken,async(request,response)=>{
   const dbResponse=await db.get(selectUserId);
   console.log(dbResponse.desigener_name,"gytyuty");
   const feedDetails=request.body;
-  // const fileUrl = `https://objective-wright.69-49-231-148.plesk.page/${filePath}`;
+  // const fileUrl = `http://localhost:9000/${filePath}`;
   const {description,property,subType,Occupancy,Category,DesignStyle,Locality,city,privacy}=feedDetails;
   const feedInsertQuery=`INSERT INTO feed_details(feed_images,description,property_type,property,occupancy,category,design_style,locality,city,user_id,privacy)
   VALUES('${filePath}','${description}','${property}','${subType}','${Occupancy}','${Category}','${DesignStyle}','${Locality}','${city}','${dbResponse.desigener_name}','${privacy}');`;
@@ -593,12 +618,12 @@ app.post("/scenes",jsonParser,(request,response)=>{
     }
     else{
       const insertScene=`INSERT INTO scenes(scene_name,scene_image,tour_id)
-      values('${sceneName}','https://objective-wright.69-49-231-148.plesk.page/${filePath}','${tourId}');`;
+      values('${sceneName}','http://localhost:9000/${filePath}','${tourId}');`;
       const dbResponse=await db.run(insertScene)
       console.log(dbResponse.lastID)
       const sceneQuery=`SELECT scene_id,scene_name,scene_image,tour_id FROM scenes WHERE scene_id='${dbResponse.lastID}';`;
       const latestScenes=await db.get(sceneQuery)
-      const sceneImageUrl=`https://objective-wright.69-49-231-148.plesk.page/${latestScenes.scene_images}`
+      const sceneImageUrl=`http://localhost:9000/${latestScenes.scene_images}`
    
       response.send(latestScenes)
       
@@ -700,7 +725,7 @@ app.post("/mapImage",jsonParser,async(request,response)=>{
     }
     else{
       const mapInsertQuery=  ` UPDATE scenes
-      SET map_image = 'https://objective-wright.69-49-231-148.plesk.page/${filePath}'
+      SET map_image = 'http://localhost:9000/${filePath}'
       WHERE scene_id = '${activeSceneId}';`;
       const dbResponse=await db.run(mapInsertQuery)
       const getMapImage=`SELECT map_image FROM scenes WHERE scene_id='${activeSceneId}';`;
@@ -724,10 +749,10 @@ app.post("/tourData1",jwtAuthenticateToken,jsonParser,async(request,response)=>{
   const {userNumber}=request
   console.log(userNumber)
   const {parseTourId}=tourId
-  const virtualTourQuery=`SELECT * FROM virtual_tours WHERE user_id='${userNumber}';`;
+  const virtualTourQuery=`SELECT * FROM virtual_tours LEFT JOIN designerPost ON virtual_tours.tour_id=designerPost.tourId WHERE user_id='${userNumber}';`;
   const dbResponse=await db.all(virtualTourQuery);
   response.send(dbResponse)
-  console.log(dbResponse)
+  console.log(dbResponse,"poiukjhgfdcs")
   
   
  })
@@ -888,10 +913,11 @@ app.post("/designerPost",jwtAuthenticateToken,jsonParser,async(request,response)
  
  
 })
-app.post("/designerSelectedPost",jwtAuthenticateToken,jsonParser,async(request,response)=>{
+app.post("/designerSelectedPost",userJwtAuthenticateToken,jsonParser,async(request,response)=>{
   const {selectedPostId1}=request.body
   console.log(selectedPostId1)
   const {userNumber}=request
+  console.log(userNumber,"poiuytref")
   const getDesigner=`SELECT designer_id FROM interior_designer_details WHERE phone_number=${userNumber} ;`;
   const designerResponse=await db.get(getDesigner)
   const DesignerId1=designerResponse.designer_id
@@ -902,6 +928,7 @@ app.post("/designerSelectedPost",jwtAuthenticateToken,jsonParser,async(request,r
 
   const postResponse=await db.all(getAllPosts)
   response.send(postResponse)
+  console.log(postResponse)
 })
 app.get("/360ImagesOnProfile",jwtAuthenticateToken,jsonParser,async(request,response)=>{
   const {userNumber}=request
@@ -1132,9 +1159,6 @@ app.post("/virtualTourCreater",jwtAuthenticateToken,jsonParser,async(request,res
     // const splitFilePath=filePathArray.split(".")[1]
     //   console.log(splitFilePath)
    }
- 
- 
-
   const postInsertQuery=`INSERT INTO designerPost (designerId,postType,designStyle,category,subCategory,caption,privacy,likes,thumbnail,isActive,location,createdAt,updatedAt,occupancy,propertySize,duration,tags,deignerName,logo,tourId)
        VALUES('${createdDesignerId}','virtualTourImage','${designStyle}','${propertyType}','${subCategory}','${tourTitle}','${privacy}','${likes}','${fileArray} ','${false}','${location}','${Date.now()}','${null}','${occupancy}','${propertySize}','${timeDuration}','${tags}','${createdDesignerName}','${designerLogo}','${presentTourd}');`;
       const insertingValuesintoDb=await db.run(postInsertQuery)
@@ -1150,4 +1174,44 @@ app.post("/virtualTourDetailview",jsonParser,async(request,response)=>{
   const dbResponse=await db.get(joinQuery);
   response.send(dbResponse)
   console.log(dbResponse)
+})
+
+app.post("/userRegister",jsonParser,async(request,response)=>{
+  const {name,PhoneNumber}=request.body
+  const checkingVendor=`SELECT mobile FROM usersDetails WHERE mobile=${PhoneNumber};`;
+  const vendorResult=await db.get(checkingVendor)
+  if(vendorResult===undefined){
+    const insertVenderDetails=`INSERT INTO usersDetails (name,emailId,mobile,otp,slug,role,address,isActive,createdAt,updatedAt)
+    VALUES('${name}','','${PhoneNumber}','NULL','${Date.now()}',${2},'${null}','${true}','${Date.now()}',${null});`;
+    const dbResonse=await db.run(insertVenderDetails);
+    response.send(JSON.stringify("Your Profile is Created Successfully"))
+  }
+})
+app.post("/userLoginCheck/",jsonParser,async(request,response)=>{
+  const phone=request.body
+  const {phoneNumber}=phone
+  console.log(phoneNumber)
+  dbQuery=`SELECT * FROM usersDetails WHERE mobile='${phoneNumber}' AND role='${2}';`;
+  const dbResponse=await db.get(dbQuery)
+  console.log(dbResponse)
+  if(dbResponse===undefined){
+    console.log(dbResponse ,"iffff")
+    response.status(404)
+    response.send({"error_msg":"Mobile number is not Registered"})
+    
+    
+  }
+  else{
+    console.log(dbResponse,"elseee")
+    //creating jsonweb token
+    const payload={phoneNumber:phoneNumber,}
+    const jwtToken=jwt.sign(payload,"user_login_token")
+    response.send({jwtToken})
+    console.log({jwtToken},phoneNumber)
+    
+  }
+  // const response1=`SELECT * FROM interior_designer_details WHERE phone_number='${phone}';`;
+  // const dbResponse=await db.get(response1)
+  // console.log(dbResponse)
+
 })
