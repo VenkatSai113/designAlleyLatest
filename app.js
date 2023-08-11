@@ -762,6 +762,8 @@ app.post("/tourData1",jwtAuthenticateToken,jsonParser,async(request,response)=>{
    console.log(tour_id)
   const virtualTourQuery=`DELETE FROM virtual_tours WHERE tour_id=${tour_id};`;
   const dbResponse=await db.run(virtualTourQuery);
+  const deleteFeedData=`DELETE FROM designerPost WHERE tourId=${tour_id};`;
+  await db.run(deleteFeedData)
   const selectVirtualTourQuery=`SELECT * FROM virtual_tours ;`;
   const dbResponseTour=await db.all(selectVirtualTourQuery);
   response.send(dbResponseTour)
@@ -916,16 +918,12 @@ app.post("/designerPost",jwtAuthenticateToken,jsonParser,async(request,response)
 app.post("/designerSelectedPost",userJwtAuthenticateToken,jsonParser,async(request,response)=>{
   const {selectedPostId1}=request.body
   console.log(selectedPostId1)
-  const {userNumber}=request
-  console.log(userNumber,"poiuytref")
-  const getDesigner=`SELECT designer_id FROM interior_designer_details WHERE phone_number=${userNumber} ;`;
-  const designerResponse=await db.get(getDesigner)
-  const DesignerId1=designerResponse.designer_id
+  // const {userNumber}=request
+  // console.log(userNumber,"poiuytref")
+  // const getDesigner=`SELECT designer_id FROM usersDetails WHERE mobile=${userNumber} ;`;
+  // const designerResponse=await db.get(getDesigner)
+  // const DesignerId1=designerResponse.designer_id
   const getAllPosts=`SELECT * FROM designerPost WHERE postId=${selectedPostId1} ;`;
-  // CASE
-  // WHEN your_column_name = 124 THEN 0 -- Value from frontend, prioritize it first
-  
-
   const postResponse=await db.all(getAllPosts)
   response.send(postResponse)
   console.log(postResponse)
@@ -1177,14 +1175,23 @@ app.post("/virtualTourDetailview",jsonParser,async(request,response)=>{
 })
 
 app.post("/userRegister",jsonParser,async(request,response)=>{
-  const {name,PhoneNumber}=request.body
-  const checkingVendor=`SELECT mobile FROM usersDetails WHERE mobile=${PhoneNumber};`;
+  const {name,phoneNumber}=request.body
+  const checkingVendor=`SELECT mobile FROM usersDetails WHERE mobile=${phoneNumber};`;
   const vendorResult=await db.get(checkingVendor)
   if(vendorResult===undefined){
     const insertVenderDetails=`INSERT INTO usersDetails (name,emailId,mobile,otp,slug,role,address,isActive,createdAt,updatedAt)
-    VALUES('${name}','','${PhoneNumber}','NULL','${Date.now()}',${2},'${null}','${true}','${Date.now()}',${null});`;
+    VALUES('${name}','','${phoneNumber}','NULL','${Date.now()}',${2},'${null}','${true}','${Date.now()}',${null});`;
     const dbResonse=await db.run(insertVenderDetails);
-    response.send(JSON.stringify("Your Profile is Created Successfully"))
+    // response.send(JSON.stringify("Your Profile is Created Successfully"))
+    const payload={phoneNumber:phoneNumber,}
+    const jwtToken=jwt.sign(payload,"user_login_token")
+    response.send({jwtToken})
+  }
+  else{
+    const payload={phoneNumber:phoneNumber,}
+    const jwtToken=jwt.sign(payload,"user_login_token")
+    response.send({jwtToken})
+
   }
 })
 app.post("/userLoginCheck/",jsonParser,async(request,response)=>{
