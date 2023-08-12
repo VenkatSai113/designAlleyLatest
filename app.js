@@ -468,9 +468,7 @@ app.get("/logedInUser",jwtAuthenticateToken,jsonParser,async(request,response)=>
   const {userNumber}=request
   const getDesigner=`SELECT designer_id FROM interior_designer_details WHERE phone_number=${userNumber} ;`;
   const deResponse1=await db.get(getDesigner)
-
   response.send(deResponse1);
-
 })
 let commentId=null
 app.post("/comments",jwtAuthenticateToken,jsonParser,async(request,response)=>{
@@ -531,7 +529,6 @@ app.post("/virtualtours",jwtAuthenticateToken,jsonParser,(request,response)=>{
    const fileName=Date.now()+"_"+file.name
    filePath=__dirname+"/virtualThumbnails/"+fileName
    var path = "virtualThumbnails/"+fileName
-   
    file.mv(filePath,async(error)=>{
     if(error){
       console.log(error)
@@ -560,11 +557,7 @@ app.post("/creteScene",jsonParser,async(request,response)=>{
  const dbGetMethod=`SELECT * FROM temp_scenes;`;
  const gettingMetos=await db.all(dbGetMethod)
  response.send(gettingMetos)
- 
- 
- 
 })
-
 // app.get('/path',(request,response)=>{
 //   const hotspots=request.body
 //   const {sceneId,sceneName,hotspot}=hotspots
@@ -593,7 +586,6 @@ app.post("/hotspots",jsonParser,async(request,response)=>{
   console.log(queryResult)
   response.send(queryResult)
 })
-
 //deleteing hotspots
 app.post("/deleteHotspot",jsonParser,async(request,response)=>{
   const {hotspotId,id}=request.body
@@ -604,7 +596,6 @@ app.post("/deleteHotspot",jsonParser,async(request,response)=>{
  console.log(responseHotspots)
  response.send(responseHotspots)
 })
-
 //add (or) creating scenes
 app.post("/scenes",jsonParser,(request,response)=>{
   console.log("scenes")
@@ -624,24 +615,17 @@ app.post("/scenes",jsonParser,(request,response)=>{
       const sceneQuery=`SELECT scene_id,scene_name,scene_image,tour_id FROM scenes WHERE scene_id='${dbResponse.lastID}';`;
       const latestScenes=await db.get(sceneQuery)
       const sceneImageUrl=`http://localhost:9000/${latestScenes.scene_images}`
-   
       response.send(latestScenes)
-      
-   
-      
     }
   })
- 
 })
 // FILTERING THE HOTSPOTS FOR PERTICULAR SCENE....
-
 app.post("/sceneHotspots",jwtAuthenticateToken,jsonParser,async(request,response)=>{
   const sceneHotspots=request.body
   const {id}=sceneHotspots
   const sceneGroupHotspots=`SELECT hotspot_id,x,y,z,scene_id  FROM hotspots WHERE scene_id='${id}';`;
  const dbResponse=await db.all(sceneGroupHotspots)
  response.send(dbResponse)
-
 })
 app.delete("/deleteScene",jsonParser,async(request,response)=>{
   const sceneDeleteInfo=request.body
@@ -654,7 +638,6 @@ app.delete("/deleteScene",jsonParser,async(request,response)=>{
   const selectResponseQuery=await db.all( deleteResponseQuery)
   console.log(selectResponseQuery)
   response.send(selectResponseQuery)
-  
 })
 app.post("/linkedSpots",jsonParser,async(request,response)=>{
   console.log(request.body)
