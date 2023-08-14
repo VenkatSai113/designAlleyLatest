@@ -739,15 +739,16 @@ app.post("/tourData1",jwtAuthenticateToken,jsonParser,async(request,response)=>{
   
   
  })
- app.post("/deleteTour",jsonParser,async(request,response)=>{
+ app.post("/deleteTour",jwtAuthenticateToken,jsonParser,async(request,response)=>{
   const tourId=request.body
    const {tour_id}=tourId
+   const {userNumber}=request
    console.log(tour_id)
   const virtualTourQuery=`DELETE FROM virtual_tours WHERE tour_id=${tour_id};`;
   const dbResponse=await db.run(virtualTourQuery);
   const deleteFeedData=`DELETE FROM designerPost WHERE tourId=${tour_id};`;
   await db.run(deleteFeedData)
-  const selectVirtualTourQuery=`SELECT * FROM virtual_tours ;`;
+  const selectVirtualTourQuery=`SELECT * FROM virtual_tours WHERE user_id=${userNumber};`;
   const dbResponseTour=await db.all(selectVirtualTourQuery);
   response.send(dbResponseTour)
   console.log(dbResponseTour)
