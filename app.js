@@ -36,6 +36,7 @@ app.use('/virtualThumbnails', express.static('virtualThumbnails'));
 app.use('/feedUploads', express.static('feedUploads')); 
 app.use('/uploads', express.static('uploads'));  
 app.use('/vendorProducts', express.static('vendorProducts'));   
+app.use('/spaces', express.static('spaces'));  
 
 // Server setup
 
@@ -438,7 +439,7 @@ app.get("/profileData",jwtAuthenticateToken,jsonParser,async(request,response)=>
 })
 //select spesific user for feed in create post 
 app.get("/relatedUsers",jsonParser,async(request,response)=>{
-  const gettingUsersQuery=`SELECT desigener_name,logo FROM interior_designer_details`
+  const gettingUsersQuery=`SELECT desigener_name,logo,designer_id FROM interior_designer_details ;`;
   const dbResponse=await db.all(gettingUsersQuery)
   response.send(dbResponse)
 })
@@ -1204,5 +1205,70 @@ app.post("/userLoginCheck/",jsonParser,async(request,response)=>{
   // const response1=`SELECT * FROM interior_designer_details WHERE phone_number='${phone}';`;
   // const dbResponse=await db.get(response1)
   // console.log(dbResponse)
+
+})
+
+app.post("/createProject",jwtAuthenticateToken,jsonParser,async(request,response)=>{
+  const {projectName}=request.body
+  const {userNumber}=request
+  const getDesigner=`SELECT designer_id FROM interior_designer_details WHERE phone_number=${userNumber};`;
+  const deResponse=await db.get(getDesigner)
+  const designerId=deResponse.designer_id
+  const projectDataQuery=`INSERT INTO projects (title,designerId,userId,status,createdAt)
+  VALUES('${projectName}','${designerId}','${1}','ongoing','${Date.now()}');`;
+  const responeProject=await db.run(projectDataQuery);
+  response.send(responeProject)
+  console.log(responeProject)
+
+})
+app.get("/ongoingProjects",jwtAuthenticateToken,async(request,response)=>{
+  const {userNumber}=request
+  const getDesigner=`SELECT designer_id FROM interior_designer_details WHERE phone_number='${userNumber}';`;
+  const deResponse=await db.get(getDesigner)
+  const designerId=deResponse.designer_id
+  const ongoingProjectsData=`SELECT projectId,title,designerId,userId,status,createdAt,updatedAt FROM projects WHERE designerId=${designerId} AND status='ongoing';`;
+  const responseProjects=await db.all(ongoingProjectsData);
+  response.send(responseProjects)
+  console.log(responseProjects)
+})
+//create spacess
+app.post("/createSpaces",jsonParser,async(request,response)=>{
+  const {spacename,projectId}=request.body
+  const {spaceImage}=request.files
+  const file=request.files.spaceImage
+  const fileName=Date.now()+"_"+file.name
+  const filePath="spaces/"+fileName
+  file.mv(filePath,async(error)=>{
+    if(error){
+      console.log(error)
+    }
+    else{
+      const insertSpaceDetails=`INSERT INTO projectSpace (projectId,spaceName,createdAt,spaceImage)
+      VALUES('${projectId}','${spacename}','${Date.now()}','http://localhost:9000/${filePath}');`;
+      const dbResponse=await db.run(insertSpaceDetails);
+      const selectSpaces=`SELECT * FROM projectSpace WHERE projectId='${projectId}';`;
+  const spaceResponse=await db.all(selectSpaces)
+  response.send(spaceResponse)
+  console.log(spaceResponse)
+    }
+})
+})
+app.post("/spaceCards",jwtAuthenticateToken,jsonParser,async(request,response)=>{
+  const {projectId}=request.body
+  const selectSpaces=`SELECT * FROM projectSpace WHERE projectId='${projectId}';`;
+  const dbResponse=await db.all(selectSpaces)
+  console.log(dbResponse)
+  response.send(dbResponse)
+})
+
+app.get("/projectsInStore",jwtAuthenticateToken,jsonParser,async(request,response)=>{
+  const {userNumber}=request
+  const getDesigner=`SELECT designer_id FROM interior_designer_details WHERE phone_number='${userNumber}';`;
+  const deResponse=await db.get(getDesigner)
+  const designerId=deResponse.designer_id
+  const getAllProjects=`SELECT * FROM projects WHERE designerId='${designerId}' AND status='ongoing';`;
+  const projectResponse=await db.all(getAllProjects);
+  response.send(projectResponse)
+  console.log(projectResponse)
 
 })
