@@ -333,6 +333,31 @@ const userJwtAuthenticateToken=(request,response,next)=>{
     })
   }
 }
+const vendorJwtAuthenticateToken=(request,response,next)=>{
+  let jwtToken;
+ 
+  const authHead=request.headers["authorization"]
+  if(authHead!== undefined){
+  jwtToken=authHead.split(" ") [1];
+  }
+  if(jwtToken===undefined){
+    response.status(401)
+    response.send(JSON.stringify("Unauthorized User"))
+  }
+  else{
+    jwt.verify(jwtToken,"vendorLoginToken",(error,payload)=>{
+      if(error){
+        response.status(401)
+        response.send(JSON.stringify("Invalid Access Token"))
+      }
+      else{
+        request.userNumber=payload.phoneNumber  
+           
+        next()
+      }
+    })
+  }
+}
  // sending invitation by sms to Interior Desigener
 app.post("/invitationApi",jwtAuthenticateToken,jsonParser,async(request,response)=>{
  
@@ -461,6 +486,7 @@ app.get("/feedData",jwtAuthenticateToken,jsonParser,async(request,response)=>{
   const feedQuery=`SELECT * , designerPost.postId AS postId ,designerPost.logo AS designerLogo FROM designerPost  LEFT  JOIN 
                   savedPosts ON  designerPost.postId = savedPosts.postId 
                   LEFT JOIN interior_designer_details ON savedPosts.userId = interior_designer_details.designer_id   ORDER BY postId DESC LIMIT 25;`
+                  
   // const feedQuery=`SELECT * FROM designerPost  ORDER BY postId DESC LIMIT 25;`;
   const dbResponse=await db.all(feedQuery);
   response.send(dbResponse);
@@ -1260,7 +1286,6 @@ app.post("/spaceCards",jwtAuthenticateToken,jsonParser,async(request,response)=>
   console.log(dbResponse)
   response.send(dbResponse)
 })
-
 app.get("/projectsInStore",jwtAuthenticateToken,jsonParser,async(request,response)=>{
   const {userNumber}=request
   const getDesigner=`SELECT designer_id FROM interior_designer_details WHERE phone_number='${userNumber}';`;
@@ -1270,5 +1295,120 @@ app.get("/projectsInStore",jwtAuthenticateToken,jsonParser,async(request,respons
   const projectResponse=await db.all(getAllProjects);
   response.send(projectResponse)
   console.log(projectResponse)
+})
+app.post("/projectSpaceProducts",jwtAuthenticateToken,jsonParser,async(request,response)=>{
+  let dbResponse=""
+  const spaceProducts=request.body
+  const {productId,productType,productSize,spacesId,quentity,availableQty}=spaceProducts
+  const splitSpaceId=spacesId.split(",")
+  const spaceArrayLength=splitSpaceId.length-1
+  for(let i=0; i<=spaceArrayLength;i++){
+    const spaceId=splitSpaceId[i]
+    const productInsertQuery=`INSERT INTO projectSpaceProducts (spaceId,productId,quentity,productType,squareFeet,createdAt)
+    VALUES ('${spaceId}','${productId}','${quentity}','${productType}','${productSize}','${Date.now()}');`;
+     dbResponse=await db.run(productInsertQuery);
+  }
+  const updateQuentity=`UPDATE products
+  SET quantity ='${availableQty}'
+  WHERE productId='${productId}';
+  `
+  const updateQueryResult=await db.run(updateQuentity);
+  console.log(updateQueryResult)
+  response.status(200)
+  response.send(dbResponse)
+ 
+}) 
+app.post("/spaceProducts",jwtAuthenticateToken,jsonParser,async(request,response)=>{
+  const {spaceId}=request.body
+  const joinQuery=`SELECT *, projectSpace.spaceId AS projectSpaceId,projectSpaceProducts.spaceId AS spacesId FROM products LEFT JOIN   projectSpaceProducts ON products.productId=projectSpaceProducts.productId LEFT JOIN projectSpace ON projectSpaceProducts.spaceId=projectSpace.spaceId WHERE spacesId='${spaceId}';`;
+  const dbResponse=await db.all(joinQuery)
+  console.log(dbResponse)
+  response.send(dbResponse)
+}) 
+app.get("/estimateProjectList",jwtAuthenticateToken,jsonParser,async(request,response)=>{
+  const {userNumber}=request
+  const getDesigner=`SELECT designer_id FROM interior_designer_details WHERE phone_number='${userNumber}';`;
+  const deResponse=await db.get(getDesigner)
+  const designerId=deResponse.designer_id
+  const projectListQuery=`SELECT * FROM projects WHERE designerId=${designerId};`;
+  const projectList=await db.all(projectListQuery);
+  response.send(projectList)
+  console.log(projectList)
+})
+app.post("/estimateProducts",jwtAuthenticateToken,jsonParser,async(request,response)=>{
+  let spaceIdArray=[]
+  console.log(request.body)
+  const {projectId}=request.body
+  // const getProductQuery=`SELECT spaceId FROM projectSpace WHERE projectId='${projectId}';`;
+  // const project =await db.all(getProductQuery)
+  // const spaceArrayLength=project.length-1
+  // for(let i=0;i<=spaceArrayLength;i++){
+  //   const spaceIds=project[i].spaceId
+  //   console.log(spaceIds)
+  //   spaceIdArray.push(spaceIds)
+  //   console.log(spaceIdArray)
+  // }
+  const joinQuery=`SELECT *, projectSpace.spaceId AS projectSpaceId,projectSpaceProducts.spaceId AS spacesId FROM products LEFT JOIN   projectSpaceProducts ON products.productId=projectSpaceProducts.productId LEFT JOIN projectSpace ON projectSpaceProducts.spaceId=projectSpace.spaceId WHERE spacesId IN (SELECT spaceId FROM projectSpace WHERE projectId='${projectId}' GROUP BY spaceName);`;
+  const dbResponse=await db.all(joinQuery)
+  console.log(dbResponse)
+  response.send(dbResponse)
+ 
+})
+
+app.get("/estimateDesignerDetails",jwtAuthenticateToken,jsonParser,async(request,response)=>{
+  const {userNumber}=request
+  const getDesigner=`SELECT * FROM interior_designer_details WHERE phone_number='${userNumber}';`;
+  const dbResponse=await db.get(getDesigner)
+  response.send(dbResponse)
+  console.log(dbResponse)
+})
+app.post("/editDesignerProfile",jwtAuthenticateToken,jsonParser,async(request,response)=>{
+  const {username,email,phoneNumber,address,location}=request.body
+  const {profileImages}=request.files
+  const {userNumber}=request
+  
+  const fileName=Date.now()+"_"+request.files.profileImages.name
+  const file=request.files.profileImages
+  const filePath="uploads/"+fileName
+  
+  file.mv(filePath,async(error)=>{
+    if(error){
+      return(response.send(error))
+    }
+   const updateProfile=`UPDATE interior_designer_details
+   SET desigener_name = '${username}',email_id = '${email}',phone_number='${phoneNumber}',address='${address}',area='${location}',logo='${filePath}'
+   WHERE phone_number=${userNumber};
+   `
+   const dbResponse=await db.run(updateProfile);
+   response.send("Profile Updated successfully")
+  })
+
+  
+})
+// vendor services
+app.get("/vendorServices",vendorJwtAuthenticateToken,jsonParser,async(request,response)=>{
+  const vendorServices=`SELECT serviceName,serviceId FROM vendorServices `
+  const dbResponse=await db.all(vendorServices)
+  response.send(dbResponse)
+  console.log(dbResponse)
+})
+app.post("/vendorService",vendorJwtAuthenticateToken,jsonParser,async(request,response)=>{
+  const {serviceDetails}=request.body
+  const {userNumber}=request
+  const{price,laborCharge,service,perArea}=request.body
+
+  const vendorIdQuery=`SELECT userId FROM usersDetails WHERE mobile=${userNumber} AND role=${1};`;
+  const responseVendorId=await db.get(vendorIdQuery);
+  const vendorId=responseVendorId.userId
+  const serviceQuery=`SELECT serviceId from vendorServices WHERE serviceName='${service}';`;
+  const serviceResponse=await db.get(serviceQuery)
+  const serviceId=serviceResponse.serviceId
+  console.log(serviceResponse)
+
+  console.log(vendorId)
+  const insertServiceDetails=`INSERT INTO vendorService (vendorId,serviceId,laborCost,servicePrice,perArea,createdAt)
+  VALUES('${vendorId}','${serviceId}','${laborCharge}','${price}','${perArea}',${Date.now()});`;
+  const serviceDetailsResponse=await db.run(insertServiceDetails)
+
 
 })
