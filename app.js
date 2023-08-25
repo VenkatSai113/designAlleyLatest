@@ -5,7 +5,6 @@ const client = require('twilio')(accountSid,authToken );
 var bodyParser = require('body-parser');
 const fileUpload=require('express-fileupload')
 const cors = require('cors');
-
 const app=express();
 app.use(express.static('public'))
 const http = require("http");
@@ -39,8 +38,6 @@ app.use('/vendorProducts', express.static('vendorProducts'));
 app.use('/spaces', express.static('spaces'));  
 
 // Server setup
-
-
 initilaizeDBAndServer=async()=>{
     try{
     db=await open({
@@ -119,6 +116,7 @@ app.post("/houseOwner/registration",jsonParser,async(request,response)=>{
  const userQueryResponse=await db.get(selectUserQuery)
 
 
+
  if(userQueryResponse===undefined){
   const detailsInsertQuery=`INSERT INTO house_owners_details(email,number,full_name,user_name,password)
   VALUES('${email}','${number}','${fullName}','${userName}','${bcryptedPassword1}');`;
@@ -128,7 +126,7 @@ app.post("/houseOwner/registration",jsonParser,async(request,response)=>{
   console.log(globalHouseOwnerId)
   response.send(JSON.stringify("User Created Successfully"))
  }
- 
+
  else if(userQueryResponse.email===email){
   response.send(JSON.stringify("email is Already exist"))
   response.status(400)
@@ -152,7 +150,7 @@ app.post("/houseowner/login",jsonParser,async(request,response)=>{
   if(dbResponse===undefined){
     response.status(400)
     response.send({error_msg:"Invalid User"})
- 
+
   }
   else{
     const comparePassword=await bcrypt.compare(password,dbResponse.password)
@@ -182,7 +180,7 @@ app.post("/designer/signup/",jsonParser,async(request,response)=>{
   const desigenerLogo=request.files
   const desigenerDetails= request.body
 
-  
+
   const {name,address,email,area,budget,bankName,accountNumber,branch,ifscCode,PhoneNumber,logoFile}=desigenerDetails
  if (desigenerLogo===null){
   let filePath=""
@@ -197,56 +195,40 @@ app.post("/designer/signup/",jsonParser,async(request,response)=>{
   const dbResponse=await db.run(designerSignupQuery)
   response.send("User is created Successfully")
   console.log(dbResponse ,"lastId")
-
-
-
-
  }
+
+
+
+
  else{
   response.send("user is already existed with this Mobile number")
   response.status(400)
   console.log("user is already existed with this Mobile number")
-
-  
- 
  }
-
  }
  else{
   const fileName=Date.now()+"_"+request.files.logoFile.name
-  
   const file=request.files.logoFile
   const filePath="uploads/"+fileName
-  
   file.mv(filePath,async(error)=>{
     if(error){
       return(response.send(error))
     }
-    
   })
   const selectUser=`SELECT * FROM interior_designer_details WHERE phone_number = '${PhoneNumber}';`;
   const dbResponse=await db.get(selectUser);
   console.log(dbResponse,"searching")
-
  if(dbResponse===undefined){
-
   const designerSignupQuery=`INSERT INTO interior_designer_details (desigener_name,email_id,phone_number,area,logo,budget,bank_name,account_number,branch,ifsc_code,address,number_of_posts,number_of_followers,number_of_following)
   VALUES('${name}','${email}','${PhoneNumber}','${area}','${filePath}','${budget}','${bankName}','${accountNumber}','${branch}','${ifscCode}','${address}',0,0,0);`;
   const dbResponse=await db.run(designerSignupQuery)
   response.send("User is created Successfully")
   console.log(dbResponse ,"lastId")
-
-
-
-
  }
  else{
   response.send("user is already existed with this Mobile number")
   response.status(400)
   console.log("user is already existed with this Mobile number")
-
-  
- 
  }
 }
   
@@ -360,7 +342,6 @@ const vendorJwtAuthenticateToken=(request,response,next)=>{
 }
  // sending invitation by sms to Interior Desigener
 app.post("/invitationApi",jwtAuthenticateToken,jsonParser,async(request,response)=>{
- 
   const inviationDetails=request.body
   const {userNumber}=request
   const {mobileNumber,invitationMsg}=inviationDetails
@@ -370,29 +351,28 @@ app.post("/invitationApi",jwtAuthenticateToken,jsonParser,async(request,response
   const checkWithDesignerTable=`SELECT phone_number FROM interior_designer_details WHERE phone_number='${mobileNumber}';`;
   const responseDesignerTable=await db.get(checkWithDesignerTable);
   console.log(getDbResponse)
- 
     const invitationDetails=`INSERT INTO invitation_data (sender_number, receiver_number)
 VALUES ('${userNumber}','${mobileNumber}' )`;
 const sendingInvitation=await db.run(invitationDetails)
-
 client.messages
 .create({
    body:invitationMsg,
    from: +14849897515,
-  
    to:`+91${mobileNumber}`
  })
 .then(message =>response.send(JSON.stringify("Invitation Sent Successfully")))
 .catch(error =>
   console.log(error)
 );
- 
-  
+
+
 
 })
 app.post("/createPost",jwtAuthenticateToken,jsonParser,(request,response)=>{
   const hello=request.body
   console.log(hello)
+
+
 
 })
 app.post("/post/",jsonParser,jwtAuthenticateToken,async(request,response)=>{
@@ -415,8 +395,10 @@ app.post("/post/",jsonParser,jwtAuthenticateToken,async(request,response)=>{
   const feedInsertQuery=`INSERT INTO feed_details(feed_images,description,property_type,property,occupancy,category,design_style,locality,city,user_id,privacy)
   VALUES('${filePath}','${description}','${property}','${subType}','${Occupancy}','${Category}','${DesignStyle}','${Locality}','${city}','${dbResponse.desigener_name}','${privacy}');`;
   const dbResonse=await db.run(feedInsertQuery)
-  
+
+
   // res.json({ message: 'Feed is uploaded successfully', fileUrl });
+
 
   response.send(JSON.stringify("Feed is uploaded successfully"));
   console.log(dbResonse);     
@@ -438,10 +420,11 @@ app.post("/editProfile",jwtAuthenticateToken,jsonParser,async(request,response)=
   if(error){
     console.log(error)
   }
-  
+
+
  })
   console.log(request.body)
-
+  
   const profileInsertQuery=`INSERT INTO designer_profile_details(user_name,email,phone_number,company_name,location,number_of_posts,number_of_followers,number_of_following)
   VALUES('${username}','${email}','${phoneNumber}','${companyName}','${location}','${0}','${0}','${0}');`;
   const profileDbResponse=await db.run(profileInsertQuery)
@@ -469,6 +452,7 @@ app.get("/relatedUsers",jsonParser,async(request,response)=>{
   response.send(dbResponse)
 })
 
+
 app.post("/selectedUsers",jsonParser,async(request,response)=>{
  const{searchResult}=request.body
   const searchQuery=`SELECT desigener_name,logo FROM interior_designer_details
@@ -476,6 +460,7 @@ app.post("/selectedUsers",jsonParser,async(request,response)=>{
   const dbResponse=await db.all(searchQuery);
   response.send(dbResponse);
   console.log(dbResponse);
+
 
 })
 app.get("/feedData",jwtAuthenticateToken,jsonParser,async(request,response)=>{
@@ -775,6 +760,7 @@ app.post("/tourData1",jwtAuthenticateToken,jsonParser,async(request,response)=>{
   const dbResponse=await db.run(virtualTourQuery);
   const deleteFeedData=`DELETE FROM designerPost WHERE tourId=${tour_id};`;
   await db.run(deleteFeedData)
+  
   const selectVirtualTourQuery=`SELECT * FROM virtual_tours WHERE user_id=${userNumber};`;
   const dbResponseTour=await db.all(selectVirtualTourQuery);
   response.send(dbResponseTour)
@@ -818,7 +804,7 @@ app.post("/tourData1",jwtAuthenticateToken,jsonParser,async(request,response)=>{
       const filePathArray=fileArray.push(filePath)
       console.log(filePath ,"Filepath1112352435")
 
-      
+
     }
    }
    else{
@@ -829,19 +815,20 @@ app.post("/tourData1",jwtAuthenticateToken,jsonParser,async(request,response)=>{
     const filePathArray=fileArray.push(filePath)
     // const splitFilePath=filePathArray.split(".")[1]
     //   console.log(splitFilePath)
-   }
- 
- 
+  }
+
+
 
   const postInsertQuery=`INSERT INTO designerPost (designerId,postType,designStyle,category,subCategory,caption,privacy,likes,thumbnail,isActive,location,createdAt,updatedAt,occupancy,propertySize,duration,tags,deignerName,logo)
        VALUES('${createdDesignerId}','image','${designStyle}','${propertyType}','${subCategory}','${caption}','${privacyState}','${likes}','${fileArray} ','${false}','${location}','${Date.now()}','${null}','${occupancy}','${propertySize}','${duration}','${tags}','${createdDesignerName}','${designerLogo}');`;
       const insertingValuesintoDb=await db.run(postInsertQuery)
        response.send("Post is Uploaded Successfully")
       console.log(insertingValuesintoDb)
-    
 
-  
-}
+
+
+
+    }
 } )  
 //upload videos
 app.post("/postVideo",jwtAuthenticateToken,jsonParser,async(request,response)=>{
@@ -853,6 +840,7 @@ app.post("/postVideo",jwtAuthenticateToken,jsonParser,async(request,response)=>{
   const {caption,designStyle,propertyType,location,occupancy,propertySize,duration,tags,privacyState}=postDeatils
   const gettingDesignerID=`SELECT designer_id,desigener_name FROM interior_designer_details WHERE phone_number='${userNumber}';`;
   const dbResonse=await db.get(gettingDesignerID);
+
 
   console.log(dbResonse.designer_id)
   const createdDesignerId=dbResonse.designer_id
@@ -884,17 +872,16 @@ app.post("/postVideo",jwtAuthenticateToken,jsonParser,async(request,response)=>{
     const filePathArray=fileArray.push(filePath)
       console.log(filePath)
   }
+
+
+
   console.log(fileArray)
- 
-    
-      
       const postInsertQuery=`INSERT INTO designerPost (designerId,postType,designStyle,category,subCategory,caption,privacy,likes,thumbnail,isActive,location,createdAt,updatedAt,occupancy,propertySize,duration,tags,deignerName)
       VALUES('${createdDesignerId}','video','${designStyle}','${propertyType}','${subCategory}','${caption}','${privacyState}','${likes}','${fileArray}','${false}','${location}','${Date.now()}','${null}','${occupancy}','${propertySize}','${duration}','${tags}','${createdDesignerName}');`;
       const insertingValuesintoDb=await db.run(postInsertQuery)
-      response.send("Post is Uploaded Successfully")
-      
-    
-
+ 
+ 
+     response.send("Post is Uploaded Successfully")
 }
 } )            
 // post's Based on profiles
@@ -1057,8 +1044,8 @@ app.post("/vendorLogin/",jsonParser,async(request,response)=>{
   }
 
 })
-app.post("/vendorProducts",jsonParser,async(request,response)=>{
- const {title,description,descriptionStatus,titleStatus,productType,brand,sqFeets,fettInput,productColor,material,selectType,spaceType,usage,qty,price,tax,noOfDays,shippingCharges}=request.body
+app.post("/vendorProducts",vendorJwtAuthenticateToken,jsonParser,async(request,response)=>{
+ const {title,description,descriptionStatus,titleStatus,thickness,length,width,productType,brand,sqFeets,fettInput,productColor,material,selectType,spaceType,usage,qty,price,tax,noOfDays,shippingCharges}=request.body
  const { productImages } = request.files;
  console.log(productImages,"plkjhgfd")
  const productImageLength=productImages.length
@@ -1093,8 +1080,8 @@ const filePathArray=productArray.push(filePath)
  const selectMaterialId=`SELECT productMaterialId FROM productmaterial WHERE material='${material}';`;
  const getMaterialId=await db.get(selectMaterialId);
  const productMaterialId=getMaterialId.productMaterialId
- const insertProductData=`INSERT INTO products(title,description,productBrandId,productColorId,productTypeId,productMaterialId,productSize,productType,usages,quantity,price,tax,shippingCharges,estimateDeliviry,thumbnail,createdAt,updatedAt)
- VALUES('${title}','${description}','${brandId}','${colorId}','${productTypeId}','${productMaterialId}','${fettInput} ${sqFeets}','${selectType}','${usage}','${qty}','${price}','${tax}','${shippingCharges}','${noOfDays}','${productArray}','${Date.now()}',${null});`;
+ const insertProductData=`INSERT INTO products(title,description,productBrandId,productColorId,productTypeId,productMaterialId,productSize,productType,usages,quantity,price,tax,shippingCharges,estimateDeliviry,thumbnail,createdAt,updatedAt,thickness,length,width)
+ VALUES('${title}','${description}','${brandId}','${colorId}','${productTypeId}','${productMaterialId}','${fettInput} ${sqFeets}','${selectType}','${usage}','${qty}','${price}','${tax}','${shippingCharges}','${noOfDays}','${productArray}','${Date.now()}',${null},'${thickness}','${length}','${width}');`;
  const productDbResponse=await db.run(insertProductData);
  response.send("Product is Add Successfully")
 
@@ -1133,10 +1120,8 @@ app.post("/virtualTourCreater",jwtAuthenticateToken,jsonParser,async(request,res
   const { feedImages } = request.files;
   const postDeatils=request.body
   const {presentTourd,tourTitle,designStyle,propertyType,location,occupancy,propertySize,timeDuration,tags,privacy}=postDeatils
-  
   const gettingDesignerID=`SELECT designer_id,desigener_name,logo FROM interior_designer_details WHERE phone_number='${userNumber}';`;
   const dbResonse=await db.get(gettingDesignerID);
-  
   const createdDesignerId=dbResonse.designer_id
   const createdDesignerName=dbResonse.desigener_name
   const designerLogo=dbResonse.logo
@@ -1145,7 +1130,6 @@ app.post("/virtualTourCreater",jwtAuthenticateToken,jsonParser,async(request,res
   
   }else{
     const fileImageLength=feedImages.length
-  
     let fileArray=[]
    if(fileImageLength>1){
     for (let i = 0; i < fileImageLength; i++) {
@@ -1153,10 +1137,7 @@ app.post("/virtualTourCreater",jwtAuthenticateToken,jsonParser,async(request,res
       const fileName=Date.now()+"_"+file.name
       const filePath="feedUploads/"+fileName
       file.mv(filePath)
-      const filePathArray=fileArray.push(filePath)
-   
-
-      
+      const filePathArray=fileArray.push(filePath) 
     }
    }
    else{
@@ -1202,7 +1183,6 @@ app.post("/userRegister",jsonParser,async(request,response)=>{
     const payload={phoneNumber:phoneNumber,}
     const jwtToken=jwt.sign(payload,"user_login_token")
     response.send({jwtToken})
-
   }
 })
 app.post("/userLoginCheck/",jsonParser,async(request,response)=>{
@@ -1215,9 +1195,7 @@ app.post("/userLoginCheck/",jsonParser,async(request,response)=>{
   if(dbResponse===undefined){
     console.log(dbResponse ,"iffff")
     response.status(404)
-    response.send({"error_msg":"Mobile number is not Registered"})
-    
-    
+    response.send({"error_msg":"Mobile number is not Registered"})  
   }
   else{
     console.log(dbResponse,"elseee")
@@ -1245,7 +1223,6 @@ app.post("/createProject",jwtAuthenticateToken,jsonParser,async(request,response
   const responeProject=await db.run(projectDataQuery);
   response.send(responeProject)
   console.log(responeProject)
-
 })
 app.get("/ongoingProjects",jwtAuthenticateToken,async(request,response)=>{
   const {userNumber}=request
