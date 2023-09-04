@@ -99,7 +99,7 @@ app.post("/login/",jsonParser,async(request,response)=>{
       const payload={username:username}
      const jwt_token= jwt.sign(payload,"ferewrw")
      response.send(JSON.stringify(jwt_token))
-    } 
+    }  
     else{
       response.status(400)
       response.send("Invalid Password")
@@ -390,7 +390,7 @@ app.post("/post/",jsonParser,jwtAuthenticateToken,async(request,response)=>{
   const dbResponse=await db.get(selectUserId);
   console.log(dbResponse.desigener_name,"gytyuty");
   const feedDetails=request.body;
-  // const fileUrl = `http://localhost:9000/${filePath}`;
+  // const fileUrl = `http://13.233.231.34:9000/${filePath}`;
   const {description,property,subType,Occupancy,Category,DesignStyle,Locality,city,privacy}=feedDetails;
   const feedInsertQuery=`INSERT INTO feed_details(feed_images,description,property_type,property,occupancy,category,design_style,locality,city,user_id,privacy)
   VALUES('${filePath}','${description}','${property}','${subType}','${Occupancy}','${Category}','${DesignStyle}','${Locality}','${city}','${dbResponse.desigener_name}','${privacy}');`;
@@ -621,12 +621,12 @@ app.post("/scenes",jsonParser,(request,response)=>{
     }
     else{
       const insertScene=`INSERT INTO scenes(scene_name,scene_image,tour_id)
-      values('${sceneName}','http://localhost:9000/${filePath}','${tourId}');`;
+      values('${sceneName}','http://13.233.231.34:9000/${filePath}','${tourId}');`;
       const dbResponse=await db.run(insertScene)
       console.log(dbResponse.lastID)
       const sceneQuery=`SELECT scene_id,scene_name,scene_image,tour_id FROM scenes WHERE scene_id='${dbResponse.lastID}';`;
       const latestScenes=await db.get(sceneQuery)
-      const sceneImageUrl=`http://localhost:9000/${latestScenes.scene_images}`
+      const sceneImageUrl=`http://13.233.231.34:9000/${latestScenes.scene_images}`
       response.send(latestScenes)
     }
   })
@@ -720,7 +720,7 @@ app.post("/mapImage",jsonParser,async(request,response)=>{
     }
     else{
       const mapInsertQuery=  ` UPDATE scenes
-      SET map_image = 'http://localhost:9000/${filePath}'
+      SET map_image = 'http://13.233.231.34:9000/${filePath}'
       WHERE scene_id = '${activeSceneId}';`;
       const dbResponse=await db.run(mapInsertQuery)
       const getMapImage=`SELECT map_image FROM scenes WHERE scene_id='${activeSceneId}';`;
@@ -803,8 +803,6 @@ app.post("/tourData1",jwtAuthenticateToken,jsonParser,async(request,response)=>{
       file.mv(filePath)
       const filePathArray=fileArray.push(filePath)
       console.log(filePath ,"Filepath1112352435")
-
-
     }
    }
    else{
@@ -1047,6 +1045,7 @@ app.post("/vendorLogin/",jsonParser,async(request,response)=>{
 app.post("/vendorProducts",vendorJwtAuthenticateToken,jsonParser,async(request,response)=>{
  const {title,description,descriptionStatus,titleStatus,thickness,length,width,productType,brand,sqFeets,fettInput,productColor,material,selectType,spaceType,usage,qty,price,tax,noOfDays,shippingCharges}=request.body
  const { productImages } = request.files;
+ const {userNumber}=request
  console.log(productImages,"plkjhgfd")
  const productImageLength=productImages.length
  let productArray=[]
@@ -1068,6 +1067,11 @@ file.mv(filePath)
 const filePathArray=productArray.push(filePath)
  }
 
+ const getDesigner=`SELECT userId FROM usersDetails WHERE mobile='${userNumber}' ;`;
+ const designerResponse=await db.get(getDesigner)
+ const vendorId=designerResponse.userId
+ console.log(vendorId,designerResponse)
+// const vendorId=`SELECT `
  const selectBrandId=`SELECT productBrandId FROM prouctBrand WHERE brandName='${brand}';`;
  const getBrandId=await db.get(selectBrandId);
  const brandId=getBrandId.productBrandId
@@ -1080,8 +1084,8 @@ const filePathArray=productArray.push(filePath)
  const selectMaterialId=`SELECT productMaterialId FROM productmaterial WHERE material='${material}';`;
  const getMaterialId=await db.get(selectMaterialId);
  const productMaterialId=getMaterialId.productMaterialId
- const insertProductData=`INSERT INTO products(title,description,productBrandId,productColorId,productTypeId,productMaterialId,productSize,productType,usages,quantity,price,tax,shippingCharges,estimateDeliviry,thumbnail,createdAt,updatedAt,thickness,length,width)
- VALUES('${title}','${description}','${brandId}','${colorId}','${productTypeId}','${productMaterialId}','${fettInput} ${sqFeets}','${selectType}','${usage}','${qty}','${price}','${tax}','${shippingCharges}','${noOfDays}','${productArray}','${Date.now()}',${null},'${thickness}','${length}','${width}');`;
+ const insertProductData=`INSERT INTO products(title,description,productBrandId,productColorId,productTypeId,productMaterialId,productSize,productType,usages,quantity,price,tax,shippingCharges,estimateDeliviry,thumbnail,createdAt,updatedAt,thickness,length,width,status,createdBy)
+ VALUES('${title}','${description}','${brandId}','${colorId}','${productTypeId}','${productMaterialId}','${fettInput} ${sqFeets}','${selectType}','${usage}','${qty}','${price}','${tax}','${shippingCharges}','${noOfDays}','${productArray}','${Date.now()}',${null},'${thickness}','${length}','${width}','active','${vendorId}');`;
  const productDbResponse=await db.run(insertProductData);
  response.send("Product is Add Successfully")
 
@@ -1247,7 +1251,7 @@ app.post("/createSpaces",jsonParser,async(request,response)=>{
     }
     else{
       const insertSpaceDetails=`INSERT INTO projectSpace (projectId,spaceName,createdAt,spaceImage)
-      VALUES('${projectId}','${spacename}','${Date.now()}','http://localhost:9000/${filePath}');`;
+      VALUES('${projectId}','${spacename}','${Date.now()}','http://13.233.231.34:9000/${filePath}');`;
       const dbResponse=await db.run(insertSpaceDetails);
       const selectSpaces=`SELECT * FROM projectSpace WHERE projectId='${projectId}';`;
   const spaceResponse=await db.all(selectSpaces)
@@ -1354,13 +1358,12 @@ app.post("/editDesignerProfile",jwtAuthenticateToken,jsonParser,async(request,re
     }
    const updateProfile=`UPDATE interior_designer_details
    SET desigener_name = '${username}',email_id = '${email}',phone_number='${phoneNumber}',address='${address}',area='${location}',logo='${filePath}'
-   WHERE phone_number=${userNumber};
-   `
+   WHERE phone_number=${userNumber}; `
    const dbResponse=await db.run(updateProfile);
    response.send("Profile Updated successfully")
-  })
-
   
+  
+  })
 })
 // vendor services
 app.get("/vendorServices",vendorJwtAuthenticateToken,jsonParser,async(request,response)=>{
@@ -1373,7 +1376,7 @@ app.post("/vendorService",vendorJwtAuthenticateToken,jsonParser,async(request,re
   const {serviceDetails}=request.body
   const {userNumber}=request
   const{price,laborCharge,service,perArea}=request.body
-
+  
   const vendorIdQuery=`SELECT userId FROM usersDetails WHERE mobile=${userNumber} AND role=${1};`;
   const responseVendorId=await db.get(vendorIdQuery);
   const vendorId=responseVendorId.userId
@@ -1381,11 +1384,81 @@ app.post("/vendorService",vendorJwtAuthenticateToken,jsonParser,async(request,re
   const serviceResponse=await db.get(serviceQuery)
   const serviceId=serviceResponse.serviceId
   console.log(serviceResponse)
-
+  
   console.log(vendorId)
   const insertServiceDetails=`INSERT INTO vendorService (vendorId,serviceId,laborCost,servicePrice,perArea,createdAt)
   VALUES('${vendorId}','${serviceId}','${laborCharge}','${price}','${perArea}',${Date.now()});`;
   const serviceDetailsResponse=await db.run(insertServiceDetails)
-
-
 })
+app.get("/vendorAllProducts",vendorJwtAuthenticateToken,jsonParser,async(request,response)=>{
+  const {userNumber}=request
+ const vendorIdQuery=`SELECT userId FROM usersDetails WHERE mobile=${userNumber} AND role=${1};`;
+  const responseVendorId=await db.get(vendorIdQuery);
+  const vendorId=responseVendorId.userId
+  const allProducts=`SELECT * FROM products WHERE createdBy='${vendorId}';`;
+  const productsResponse=await db.all(allProducts);
+  response.send(productsResponse)
+  console.log(productsResponse)
+})
+app.get("/vendoractiveProducts",vendorJwtAuthenticateToken,jsonParser,async(request,response)=>{
+  const {userNumber}=request
+ const vendorIdQuery=`SELECT userId FROM usersDetails WHERE mobile=${userNumber} AND role=${1};`;
+  const responseVendorId=await db.get(vendorIdQuery);
+  const vendorId=responseVendorId.userId
+  const allProducts=`SELECT * FROM products WHERE createdBy='${vendorId}' AND status='active';`;
+  const productsResponse=await db.all(allProducts);
+  response.send(productsResponse)
+  console.log(productsResponse)
+})
+app.get("/vendorpausedProducts",vendorJwtAuthenticateToken,jsonParser,async(request,response)=>{
+  const {userNumber}=request
+  const vendorIdQuery=`SELECT userId FROM usersDetails WHERE mobile=${userNumber} AND role=${1};`;
+   const responseVendorId=await db.get(vendorIdQuery);
+   const vendorId=responseVendorId.userId
+   const allProducts=`SELECT * FROM products WHERE createdBy='${vendorId}' AND status='paused';`;
+   const productsResponse=await db.all(allProducts);
+   response.send(productsResponse)
+   console.log(productsResponse)
+})
+app.get("/vendorDeletedProducts",vendorJwtAuthenticateToken,jsonParser,async(request,response)=>{
+  const {userNumber}=request
+  const vendorIdQuery=`SELECT userId FROM usersDetails WHERE mobile=${userNumber} AND role=${1};`;
+   const responseVendorId=await db.get(vendorIdQuery);
+   const vendorId=responseVendorId.userId
+   const allProducts=`SELECT * FROM products WHERE createdBy='${vendorId}' AND status='delete';`;
+   const productsResponse=await db.all(allProducts);
+   response.send(productsResponse)
+   console.log(productsResponse)
+})
+app.put("/pausedProducts",vendorJwtAuthenticateToken,jsonParser,async(request,response)=>{
+  const {productid}=request.body
+  console.log(productid)
+  const updateStatus=`UPDATE products
+  SET status = 'paused'
+  WHERE productId = '${productid}';`;
+  const dbResonse=await db.run(updateStatus)
+  console.log(dbResonse)
+
+})           
+app.put("/deleteProducts",vendorJwtAuthenticateToken,jsonParser,async(request,response)=>{
+  const {productid}=request.body
+  console.log(productid)
+  const updateStatus=`UPDATE products
+  SET status = 'delete'
+  WHERE productId = '${productid}';`;
+  const dbResonse=await db.run(updateStatus)
+  console.log(dbResonse)
+
+})  
+app.put("/restoreProducts",vendorJwtAuthenticateToken,jsonParser,async(request,response)=>{
+  const { productId}=request.body
+  console.log( productId)
+  const updateStatus=`UPDATE products
+  SET status = 'active'
+  WHERE productId = '${productId}';`;
+  const dbResonse=await db.run(updateStatus)
+  console.log(dbResonse)
+  response.send(JSON.stringify("Restored successfully"))
+  
+
+}) 
