@@ -9,9 +9,7 @@ const app=express();
 app.use(express.static('public'))
 const http = require("http");
 const sizeOf = require('image-size');
-
 const fs = require('fs/promises'); // Add this line
-
 const url = require("url");
 const bcrypt=require("bcrypt");
 app.use(cors());
@@ -80,6 +78,7 @@ app.post("/register1/",jsonParser,async(request,response)=>{
       }
       else{
         response.send("User already exist")
+        console.log('User already exist response . status')
         response.status(400)
       }
 })
@@ -448,7 +447,6 @@ app.get("/feedData",jwtAuthenticateToken,jsonParser,async(request,response)=>{
   // const feedQuery=`SELECT * FROM designerPost  ORDER BY postId DESC LIMIT 25;`;
   const dbResponse=await db.all(feedQuery);
   response.send(dbResponse);
-  console.log(dbResponse,'helllo')
 })
 app.get("/logedInUser",jwtAuthenticateToken,jsonParser,async(request,response)=>{
   const {userNumber}=request
@@ -479,6 +477,7 @@ app.post("/comments",jwtAuthenticateToken,jsonParser,async(request,response)=>{
 })
 app.post("/viewComments",jsonParser,async(request,response)=>{
   const {postId}=request.body
+  console.log(postId,"PostIddddd")
   const commentResponseQuery=`SELECT deignerName,desigener_name,interior_designer_details.logo AS image,comment,comments.createdAt AS commentsCreatedAt,thumbnail,postType
   FROM comments
   LEFT  JOIN designerPost
@@ -1186,9 +1185,11 @@ app.post("/createSpaces",jsonParser,async(request,response)=>{
 })
 app.post("/spaceCards",jwtAuthenticateToken,jsonParser,async(request,response)=>{
   const {projectId}=request.body
+  console.log(projectId,'projectId')
   const selectSpaces=`SELECT * FROM projectSpace WHERE projectId='${projectId}';`;
   const dbResponse=await db.all(selectSpaces)
   response.send(dbResponse)
+  console.log(dbResponse,"dbResponse...")
 })
 app.get("/projectsInStore",jwtAuthenticateToken,jsonParser,async(request,response)=>{
   const {userNumber}=request
@@ -1237,7 +1238,7 @@ app.get("/estimateProjectList",jwtAuthenticateToken,jsonParser,async(request,res
 app.post("/estimateProducts",jwtAuthenticateToken,jsonParser,async(request,response)=>{
   let spaceIdArray=[]
   const {projectId}=request.body
-  const joinQuery=`SELECT *, projectSpace.spaceId AS projectSpaceId,projectSpaceProducts.spaceId AS spacesId FROM products LEFT JOIN   projectSpaceProducts ON products.productId=projectSpaceProducts.productId LEFT JOIN projectSpace ON projectSpaceProducts.spaceId=projectSpace.spaceId WHERE spacesId IN (SELECT spaceId FROM projectSpace WHERE projectId='${projectId}' GROUP BY spaceName);`;
+  const joinQuery=`SELECT *, projectSpace.spaceId AS projectSpaceId,projectSpaceProducts.spaceId AS spacesId FROM products LEFT JOIN   projectSpaceProducts ON products.productId=projectSpaceProducts.productId LEFT JOIN projectSpace ON projectSpaceProducts.spaceId=projectSpace.spaceId WHERE spacesId IN (SELECT spaceId FROM projectSpace WHERE projectId='${projectId}') ORDER BY spaceName ASC;`;
   const dbResponse=await db.all(joinQuery)
   response.send(dbResponse)
  
@@ -1547,4 +1548,38 @@ app.get("/likesSaveCount",jwtAuthenticateToken,jsonParser,async(request,response
   const likedPosts=`SELECT COUNT(*) AS likeCount FROM designerPost WHERE postId IN (SELECT postId FROM likes WHERE userId='${userId}');`;
   const likesResponse=await db.all(likedPosts)
   response.send(likesResponse)
+})
+app.get('/likesActivity',jwtAuthenticateToken,jsonParser,async(request,response)=>{
+  const {userNumber}=request
+  const houseOwnerDetailsQuery=`SELECT userId FROM usersDetails WHERE mobile='${userNumber}' AND role='${3}';`;
+  const userResponse=await db.get(houseOwnerDetailsQuery);
+  const userId=userResponse.userId
+  const likedPosts=`SELECT postId from likes WHERE userId='${userId}';`;
+  const likedPostsResponse=db.all(likedPosts)
+  response.send(likedPostsResponse)
+  console.log(likedPostsResponse)
+})
+app.post('/projectEstimation',jwtAuthenticateToken,jsonParser,async(request,response)=>{
+  const {marginPrice,productId,spaceId}=request.body
+  const estimateData=`INSERT INTO projectEstimation(spaceId,productId,margin,createdAt) VALUES ('${spaceId}','${productId}','${marginPrice}','${Date.now()}');`;
+  const dbResponse=await db.run(estimateData)
+  console.log(dbResponse)
+})
+app.post('/estimateDataApi',jwtAuthenticateToken,jsonParser,async(request,response)=>{
+  const {marginArray,priceArray,spaceIdArray,productIdArray}=request.body
+  productIdArray.forEach(async(element,index)=>{
+  const insertQuery=`INSERT INTO projectEstimation(spaceId,productId,margin,createdAt)
+  VALUES('${spaceIdArray[index]}','${productIdArray[index]}','${marginArray[index]}','${Date.now()}');`
+  const dbResponse=await db.run(insertQuery)
+})
+  // const dbResponse=await db.run(insertQuery)
+  response.send(JSON.stringify("Estimate Generated Successfully"))
+  
+})
+app.post('/editEstimationDetails',jwtAuthenticateToken,jsonParser,async(request,response)=>{
+  const {spaceIdArray}=request.body
+  const spaceIds=spaceIdArray.join(',')
+ const searchQuery=`SELECT * FROM projectEstimation WHERE spaceId IN (${spaceIds});`;
+ const dbResponse=await db.all(searchQuery);
+ response.send(dbResponse)
 })
