@@ -12,6 +12,7 @@ const sizeOf = require('image-size');
 const fs = require('fs/promises'); // Add this line
 const url = require("url");
 const bcrypt=require("bcrypt");
+const multer = require('multer');
 app.use(cors());
 app.use(fileUpload())
 app.use(express.json())
@@ -23,6 +24,8 @@ const jwt=require("jsonwebtoken");
 const { error, Console } = require('console');
 const { runInNewContext } = require('vm');
 const dbPath=path.join(__dirname,"sqLiteDBusers.db");
+// const storage = multer.memoryStorage();
+// const upload = multer({ storage: storage });
 let db=null;
 // const express = require('express');
 const PORT = 9000;
@@ -37,6 +40,7 @@ app.use('/uploads', express.static('uploads'));
 app.use('/vendorProducts', express.static('vendorProducts'));   
 app.use('/spaces', express.static('spaces'));  
 // Server setup
+
 initilaizeDBAndServer=async()=>{
     try{
     db=await open({
@@ -216,7 +220,7 @@ app.post("/designer/signup/",jsonParser,async(request,response)=>{
 //file upload
 //login with otp
 app.post("/checkingPhonenumbers/",jsonParser,async(request,response)=>{
-
+console.log('checkingPhonenumbers')
   const phone=request.body
   const {phoneNumber}=phone
   dbQuery=`SELECT * FROM interior_designer_details WHERE phone_number='${phoneNumber}';`;
@@ -365,7 +369,7 @@ app.post("/post/",jsonParser,jwtAuthenticateToken,async(request,response)=>{
   const selectUserId=`SELECT desigener_name from interior_designer_details WHERE phone_number='${userNumber}';`;
   const dbResponse=await db.get(selectUserId);
   const feedDetails=request.body;
-  // const fileUrl = `http://localhost:9000/${filePath}`;
+  // const fileUrl = `https://venkatsai.onrender.com/${filePath}`;
   const {description,property,subType,Occupancy,Category,DesignStyle,Locality,city,privacy}=feedDetails;
   const feedInsertQuery=`INSERT INTO feed_details(feed_images,description,property_type,property,occupancy,category,design_style,locality,city,user_id,privacy)
   VALUES('${filePath}','${description}','${property}','${subType}','${Occupancy}','${Category}','${DesignStyle}','${Locality}','${city}','${dbResponse.desigener_name}','${privacy}');`;
@@ -406,6 +410,7 @@ else{
 
 //profile page
 app.get("/profileData",jwtAuthenticateToken,jsonParser,async(request,response)=>{
+  console.log('Helloooo')
   const {userNumber}=request
   const selectUser=`SELECT * FROM interior_designer_details WHERE phone_number = '${userNumber}';`;
   const dbResponse=await db.get(selectUser);
@@ -434,15 +439,55 @@ app.post("/selectedUsers",jsonParser,async(request,response)=>{
   const dbResponse=await db.all(searchQuery);
   response.send(dbResponse);
 })
-app.get("/feedData",jwtAuthenticateToken,jsonParser,async(request,response)=>{
+app.get('/feedDataResidentialFilter',jwtAuthenticateToken,jsonParser,async(request,response)=>{
+  const { page, pageSize ,category } = request.query;
+  const offset = (page - 1) * pageSize;
   const {userNumber}=request
+  console.log(page, pageSize ,"page, pageSize ")
   
   const getDesigner=`SELECT designer_id FROM interior_designer_details WHERE phone_number=${userNumber};`;
   const deResponse=await db.get(getDesigner)
   const userId=deResponse.designer_id
   const feedQuery=`SELECT * , designerPost.postId AS postId ,designerPost.logo AS designerLogo FROM designerPost  LEFT  JOIN 
                   savedPosts ON  designerPost.postId = savedPosts.postId 
-                  LEFT JOIN interior_designer_details ON savedPosts.userId = interior_designer_details.designer_id WHERE privacy ='Public'  ORDER BY postId DESC LIMIT 25;`
+                  LEFT JOIN interior_designer_details ON savedPosts.userId = interior_designer_details.designer_id WHERE privacy ='Public' AND category LIKE ${category} ORDER BY postId DESC LIMIT ${pageSize} OFFSET ${offset};`
+                  
+  // const feedQuery=`SELECT * FROM designerPost  ORDER BY postId DESC LIMIT 25;`;
+  const dbResponse=await db.all(feedQuery);
+  response.send(dbResponse);
+
+})
+app.get("/feedData",jwtAuthenticateToken,jsonParser,async(request,response)=>{
+  console.log("feedDataa")
+  // const { page, pageSize  } = request.query;
+  // const offset = (page - 1) * pageSize;
+  // const {userNumber}=request
+  // console.log(page, pageSize ,"page, pageSize ")
+  
+  // const getDesigner=`SELECT designer_id FROM interior_designer_details WHERE phone_number=${userNumber};`;
+  // const deResponse=await db.get(getDesigner)
+  // const userId=deResponse.designer_id
+  const feedQuery=`SELECT * , designerPost.postId AS postId ,designerPost.logo AS designerLogo FROM designerPost  LEFT  JOIN 
+                  savedPosts ON  designerPost.postId = savedPosts.postId 
+                  LEFT JOIN interior_designer_details ON savedPosts.userId = interior_designer_details.designer_id WHERE privacy ='Public'  ORDER BY postId DESC ;`;
+                  
+  // const feedQuery=`SELECT * FROM designerPost  ORDER BY postId DESC LIMIT 25;`;
+  const dbResponse=await db.all(feedQuery);
+  response.send(dbResponse);
+})
+app.get("/exploreFeedData",jsonParser,async(request,response)=>{
+  console.log("feedDataa")
+  // const { page, pageSize  } = request.query;
+  // const offset = (page - 1) * pageSize;
+  // const {userNumber}=request
+  // console.log(page, pageSize ,"page, pageSize ")
+  
+  // const getDesigner=`SELECT designer_id FROM interior_designer_details WHERE phone_number=${userNumber};`;
+  // const deResponse=await db.get(getDesigner)
+  // const userId=deResponse.designer_id
+  const feedQuery=`SELECT * , designerPost.postId AS postId ,designerPost.logo AS designerLogo FROM designerPost  LEFT  JOIN 
+                  savedPosts ON  designerPost.postId = savedPosts.postId 
+                  LEFT JOIN interior_designer_details ON savedPosts.userId = interior_designer_details.designer_id WHERE privacy ='Public'  ORDER BY postId DESC;`
                   
   // const feedQuery=`SELECT * FROM designerPost  ORDER BY postId DESC LIMIT 25;`;
   const dbResponse=await db.all(feedQuery);
@@ -554,11 +599,11 @@ app.post("/scenes",jsonParser,(request,response)=>{
     }
     else{
       const insertScene=`INSERT INTO scenes(scene_name,scene_image,tour_id)
-      values('${sceneName}','http://localhost:9000/${filePath}','${tourId}');`;
+      values('${sceneName}','https://venkatsai.onrender.com/${filePath}','${tourId}');`;
       const dbResponse=await db.run(insertScene);
       const sceneQuery=`SELECT scene_id,scene_name,scene_image,tour_id FROM scenes WHERE scene_id='${dbResponse.lastID}';`;
       const latestScenes=await db.get(sceneQuery);
-      const sceneImageUrl=`http://localhost:9000/${latestScenes.scene_images}`;
+      const sceneImageUrl=`https://venkatsai.onrender.com/${latestScenes.scene_images}`;
       response.send(latestScenes);
     }
   })
@@ -641,7 +686,7 @@ app.post("/mapImage",jsonParser,async(request,response)=>{
     }
     else{
       const mapInsertQuery=  ` UPDATE scenes
-      SET map_image = 'http://localhost:9000/${filePath}'
+      SET map_image = 'https://venkatsai.onrender.com/${filePath}'
       WHERE scene_id = '${activeSceneId}';`;
       const dbResponse=await db.run(mapInsertQuery);
       const getMapImage=`SELECT map_image FROM scenes WHERE scene_id='${activeSceneId}';`;
@@ -1133,56 +1178,56 @@ app.get("/upcomingProjects",jwtAuthenticateToken,async(request,response)=>{
 // });
 
 
-// app.post('/createSpaces', jsonParser,async (req, res) => {
-//   const {spacename,projectId,spaceImage}=req.body
-//   try {
-//     // Access the base64-encoded image data from req.body
-//     const base64Data = req.body.spaceImage.replace(spaceImage, '');
-//     const imageBuffer = Buffer.from(base64Data, 'base64');
-//     console.log(imageBuffer,"imageBuffer")
+app.post('/createSpaces', jsonParser,async (req, res) => {
+  const {spacename,projectId,spaceImage}=req.body
+  try {
+    // Access the base64-encoded image data from req.body
+    const base64Data = req.body.spaceImage.replace(spaceImage, '');
+    const imageBuffer = Buffer.from(base64Data, 'base64');
+    console.log(imageBuffer,"imageBuffer")
 
-//     // Save the image to disk (you can adjust the path and filename)
-//     const imagePath = path.join('spaces', 'image.jpg');
-//     console.log(imagePath)
-//     await fs.writeFile(imagePath, imageBuffer);
+    // Save the image to disk (you can adjust the path and filename)
+    const imagePath = path.join('spaces', 'image.jpg');
+    console.log(imagePath)
+    await fs.writeFile(imagePath, imageBuffer);
 
-//     // Send a response indicating success
-//     const insertSpaceDetails=`INSERT INTO projectSpace (projectId,spaceName,createdAt,spaceImage)
-//           VALUES('${projectId}','${spacename}','${Date.now()}','http://localhost:9000/${imagePath}');`;
-//           const dbResponse=await db.run(insertSpaceDetails);
-//           const selectSpaces=`SELECT * FROM projectSpace WHERE projectId='${projectId}';`;
-//       const spaceResponse=await db.all(selectSpaces)
-//       res.send(spaceResponse)
-//   } catch (error) {
-//     console.error('Error handling image upload:', error);
-//     res.status(500).json({ error: 'Internal server error' });
-//   }
-// });
+    // Send a response indicating success
+    const insertSpaceDetails=`INSERT INTO projectSpace (projectId,spaceName,createdAt,spaceImage)
+          VALUES('${projectId}','${spacename}','${Date.now()}','https://venkatsai.onrender.com/${imagePath}');`;
+          const dbResponse=await db.run(insertSpaceDetails);
+          const selectSpaces=`SELECT * FROM projectSpace WHERE projectId='${projectId}';`;
+      const spaceResponse=await db.all(selectSpaces)
+      res.send(spaceResponse)
+  } catch (error) {
+    console.error('Error handling image upload:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
 
-app.post("/createSpaces",jsonParser,async(request,response)=>{
-  const {spacename,projectId}=request.body
-  // const {spaceImage}=request.files
-  const file=request.files.spaceImage
-  console.log(request.files,'fileeeee')
-  const fileName=Date.now()+"_"+file.name
-  const filePath="spaces/"+fileName
-  console.log(filePath)
-  file.mv(filePath,async(error)=>{
-    if(error){
-      console.log(error)
-    }
-    else{
-      const insertSpaceDetails=`INSERT INTO projectSpace (projectId,spaceName,createdAt,spaceImage)
-      VALUES('${projectId}','${spacename}','${Date.now()}','${filePath}');`;
-      const dbResponse=await db.run(insertSpaceDetails);
-      const selectSpaces=`SELECT * FROM projectSpace WHERE projectId='${projectId}';`;
-  const spaceResponse=await db.all(selectSpaces)
-  response.send(spaceResponse)
+// app.post("/createSpaces",jsonParser,async(request,response)=>{
+//   const {spacename,projectId}=request.body
+//   // const {spaceImage}=request.files
+//   const file=request.files.spaceImage
+//   console.log(request.files,'fileeeee')
+//   const fileName=Date.now()+"_"+file.name
+//   const filePath="spaces/"+fileName
+//   console.log(filePath)
+//   file.mv(filePath,async(error)=>{
+//     if(error){
+//       console.log(error)
+//     }
+//     else{
+//       const insertSpaceDetails=`INSERT INTO projectSpace (projectId,spaceName,createdAt,spaceImage)
+//       VALUES('${projectId}','${spacename}','${Date.now()}','${filePath}');`;
+//       const dbResponse=await db.run(insertSpaceDetails);
+//       const selectSpaces=`SELECT * FROM projectSpace WHERE projectId='${projectId}';`;
+//   const spaceResponse=await db.all(selectSpaces)
+//   response.send(spaceResponse)
    
 
-    }
-})
-})
+//     }
+// })
+// })
 app.post("/spaceCards",jwtAuthenticateToken,jsonParser,async(request,response)=>{
   const {projectId}=request.body
   console.log(projectId,'projectId')
@@ -1242,6 +1287,7 @@ app.post("/estimateProducts",jwtAuthenticateToken,jsonParser,async(request,respo
   const dbResponse=await db.all(joinQuery)
   response.send(dbResponse)
  
+  
 })
 
 app.get("/estimateDesignerDetails",jwtAuthenticateToken,jsonParser,async(request,response)=>{
@@ -1574,7 +1620,6 @@ app.post('/estimateDataApi',jwtAuthenticateToken,jsonParser,async(request,respon
 })
   // const dbResponse=await db.run(insertQuery)
   response.send(JSON.stringify("Estimate Generated Successfully"))
-  
 })
 app.post('/editEstimationDetails',jwtAuthenticateToken,jsonParser,async(request,response)=>{
   const {spaceIdArray}=request.body
@@ -1583,3 +1628,138 @@ app.post('/editEstimationDetails',jwtAuthenticateToken,jsonParser,async(request,
  const dbResponse=await db.all(searchQuery);
  response.send(dbResponse)
 })
+app.post('/exploreSelect',jwtAuthenticateToken,jsonParser,async(request,response)=>{
+  const {postId,userId}=request.body
+  const exploreQuery=`SELECT * FROM designerPost WHERE postId=${postId} ;`;
+  const dbResonse=await db.all(exploreQuery)
+  console.log(dbResonse,'response')
+  response.send(dbResonse)                                               
+})
+//Explore filter Feed
+app.get('/timeFilteredFeed',jwtAuthenticateToken,async(request,response)=>{
+  const {timeFilter}=request.query
+  console.log(timeFilter)
+// const  query=`SELECT * FROM designerPost WHERE DATE(createdAt/ 1000, "unixepoch")= DATE("now", "localtime");`;
+// const dbResponse=await db.all(query)
+// console.log(dbResponse)
+// response.send(dbResponse)
+  let query = '';
+  let params = [];
+  if(timeFilter==='today'){
+        query=`SELECT * FROM designerPost WHERE DATE(createdAt/ 1000, "unixepoch")= DATE("now", "localtime");`;
+  }
+  else if(timeFilter==='week'){
+    query=`SELECT * FROM designerPost WHERE strftime("%Y-%w", createdAt / 1000, "unixepoch") = strftime("%Y-%w", "now", "localtime");`;
+  }
+        else if(timeFilter==='month'){
+        query=`SELECT * FROM designerPost WHERE strftime("%Y-%m", createdAt / 1000, "unixepoch") = strftime("%Y-%m", "now", "localtime");`;
+      }
+      else{
+
+        query = 'SELECT * FROM your_table';
+      
+    }
+    const dbResonse=await db.all(query)
+    response.send(dbResonse)
+    console.log(dbResonse)
+    // db.all(query, params, (err, rows) => {
+    //   if (err) {
+    //     console.error(err);
+    //     res.status(500).send('Internal Server Error');
+    //   } else {
+    //     console.log("Hellloootoday")
+    //     res.json(rows);
+    //   }
+    // });  
+})
+app.get('/productColor',jwtAuthenticateToken,async(request,response)=>{
+  const brandColorQuery=`SELECT * FROM productcolor`
+  const dbResponse=await db.all(brandColorQuery);
+  response.send(dbResponse)
+})
+
+// app.post("/upload-feed",jsonParser, async (req, res) => {
+//   const {profile}=req.body
+
+//   console.log(profile.name,"hgfcbgchg")
+//   res.send(JSON.stringify("Success"))
+// //   try {
+// //     console.log(req.file,'file');
+// //     console.log(req.body,'body');
+
+
+// //     const DirName = `./uploads`;
+// //     let URL = `./uploads/SomeImage.` + req.file.originalname.split(".").pop();
+
+// //     fs.mkdir(DirName, { recursive: true }, async (err) => {
+// //       if (err) {
+// //         return res.status(500).send("Some Error");
+// //       } else {
+// //         fs.writeFile(URL, req.file.buffer, "ascii", function (err) {
+// //           if (err) {
+// //             return res.status(500).send("Some Error");
+// //           } else {
+// //             res.send({ congrats: "data recieved" });
+// //           }
+// //         });
+// //       }
+// //     });
+// //   } catch (error) {
+// //     res.status(500).send("Error");
+// //   }
+//  });
+const storage = multer.diskStorage({
+  destination: '/uploads',
+  filename: (req, file, callback) => {
+    callback(null, Date.now() + path.extname(file.originalname));
+  },
+});
+const upload = multer({ storage });
+app.post('/upload', (req, res) => {
+  try {
+    upload.single('image')(req, res, (error) => {
+      if (error instanceof multer.MulterError) {
+        // Handle Multer errors
+        console.error('Multer error:', error);
+        res.status(400).json({ error: 'File upload error' });
+      } else if (error) {
+        // Handle other errors
+        console.error('Other error:', error);
+        res.status(500).json({ error: 'Internal Server Error' });
+      } else {
+        // Continue with your logic
+        const { text } = req.body;
+        const imagePath = req.file.path;
+        // ...
+        res.json({ success: true });
+      }
+    });
+  } catch (error) {
+    console.error('Error:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+// db.run(`
+//   CREATE TABLE IF NOT EXISTS posts (
+//     id INTEGER PRIMARY KEY AUTOINCREMENT,
+//     text TEXT,
+//     imagePath TEXT
+//   )
+// `);
+
+app.post('/upload-feed',jsonParser, upload.single('image'), (req, res) => {
+  const { text } = req.body;
+  const imagePath = req.file;
+  console.log(imagePath,text)
+  res.send("Successfull")
+
+  // db.run('INSERT INTO designerPost (postType, thumbnail) VALUES (?, ?)', [text, imagePath], (error) => {
+  //   if (error) {
+  //     console.error('Error inserting into database:', error);
+  //     res.status(500).json({ error: 'Internal Server Error' });
+  //   } else {
+  //     res.json({ success: true });
+  //   }
+  // });
+});
