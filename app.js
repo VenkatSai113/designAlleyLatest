@@ -12,7 +12,7 @@ const sizeOf = require('image-size');
 const fs = require('fs/promises'); // Add this line
 const url = require("url");
 const bcrypt=require("bcrypt");
-const multer = require('multer');
+// const multer = require('multer');
 app.use(cors());
 app.use(fileUpload())
 app.use(express.json())
@@ -24,8 +24,7 @@ const jwt=require("jsonwebtoken");
 const { error, Console } = require('console');
 const { runInNewContext } = require('vm');
 const dbPath=path.join(__dirname,"sqLiteDBusers.db");
-// const storage = multer.memoryStorage();
-// const upload = multer({ storage: storage });
+
 let db=null;
 // const express = require('express');
 const PORT = 9000;
@@ -1678,88 +1677,4 @@ app.get('/productColor',jwtAuthenticateToken,async(request,response)=>{
   response.send(dbResponse)
 })
 
-// app.post("/upload-feed",jsonParser, async (req, res) => {
-//   const {profile}=req.body
 
-//   console.log(profile.name,"hgfcbgchg")
-//   res.send(JSON.stringify("Success"))
-// //   try {
-// //     console.log(req.file,'file');
-// //     console.log(req.body,'body');
-
-
-// //     const DirName = `./uploads`;
-// //     let URL = `./uploads/SomeImage.` + req.file.originalname.split(".").pop();
-
-// //     fs.mkdir(DirName, { recursive: true }, async (err) => {
-// //       if (err) {
-// //         return res.status(500).send("Some Error");
-// //       } else {
-// //         fs.writeFile(URL, req.file.buffer, "ascii", function (err) {
-// //           if (err) {
-// //             return res.status(500).send("Some Error");
-// //           } else {
-// //             res.send({ congrats: "data recieved" });
-// //           }
-// //         });
-// //       }
-// //     });
-// //   } catch (error) {
-// //     res.status(500).send("Error");
-// //   }
-//  });
-const storage = multer.diskStorage({
-  destination: '/uploads',
-  filename: (req, file, callback) => {
-    callback(null, Date.now() + path.extname(file.originalname));
-  },
-});
-const upload = multer({ storage });
-app.post('/upload', (req, res) => {
-  try {
-    upload.single('image')(req, res, (error) => {
-      if (error instanceof multer.MulterError) {
-        // Handle Multer errors
-        console.error('Multer error:', error);
-        res.status(400).json({ error: 'File upload error' });
-      } else if (error) {
-        // Handle other errors
-        console.error('Other error:', error);
-        res.status(500).json({ error: 'Internal Server Error' });
-      } else {
-        // Continue with your logic
-        const { text } = req.body;
-        const imagePath = req.file.path;
-        // ...
-        res.json({ success: true });
-      }
-    });
-  } catch (error) {
-    console.error('Error:', error);
-    res.status(500).json({ error: 'Internal Server Error' });
-  }
-});
-
-// db.run(`
-//   CREATE TABLE IF NOT EXISTS posts (
-//     id INTEGER PRIMARY KEY AUTOINCREMENT,
-//     text TEXT,
-//     imagePath TEXT
-//   )
-// `);
-
-app.post('/upload-feed',jsonParser, upload.single('image'), (req, res) => {
-  const { text } = req.body;
-  const imagePath = req.file;
-  console.log(imagePath,text)
-  res.send("Successfull")
-
-  // db.run('INSERT INTO designerPost (postType, thumbnail) VALUES (?, ?)', [text, imagePath], (error) => {
-  //   if (error) {
-  //     console.error('Error inserting into database:', error);
-  //     res.status(500).json({ error: 'Internal Server Error' });
-  //   } else {
-  //     res.json({ success: true });
-  //   }
-  // });
-});
