@@ -368,7 +368,7 @@ app.post("/post/",jsonParser,jwtAuthenticateToken,async(request,response)=>{
   const selectUserId=`SELECT desigener_name from interior_designer_details WHERE phone_number='${userNumber}';`;
   const dbResponse=await db.get(selectUserId);
   const feedDetails=request.body;
-  // const fileUrl = `https://venkatsai.onrender.com/${filePath}`;
+  // const fileUrl = `https://venkatsai113-1gbj.onrender.com//${filePath}`;
   const {description,property,subType,Occupancy,Category,DesignStyle,Locality,city,privacy}=feedDetails;
   const feedInsertQuery=`INSERT INTO feed_details(feed_images,description,property_type,property,occupancy,category,design_style,locality,city,user_id,privacy)
   VALUES('${filePath}','${description}','${property}','${subType}','${Occupancy}','${Category}','${DesignStyle}','${Locality}','${city}','${dbResponse.desigener_name}','${privacy}');`;
@@ -598,11 +598,11 @@ app.post("/scenes",jsonParser,(request,response)=>{
     }
     else{
       const insertScene=`INSERT INTO scenes(scene_name,scene_image,tour_id)
-      values('${sceneName}','https://venkatsai.onrender.com/${filePath}','${tourId}');`;
+      values('${sceneName}','https://venkatsai113-1gbj.onrender.com//${filePath}','${tourId}');`;
       const dbResponse=await db.run(insertScene);
       const sceneQuery=`SELECT scene_id,scene_name,scene_image,tour_id FROM scenes WHERE scene_id='${dbResponse.lastID}';`;
       const latestScenes=await db.get(sceneQuery);
-      const sceneImageUrl=`https://venkatsai.onrender.com/${latestScenes.scene_images}`;
+      const sceneImageUrl=`https://venkatsai113-1gbj.onrender.com//${latestScenes.scene_images}`;
       response.send(latestScenes);
     }
   })
@@ -685,7 +685,7 @@ app.post("/mapImage",jsonParser,async(request,response)=>{
     }
     else{
       const mapInsertQuery=  ` UPDATE scenes
-      SET map_image = 'https://venkatsai.onrender.com/${filePath}'
+      SET map_image = 'https://venkatsai113-1gbj.onrender.com//${filePath}'
       WHERE scene_id = '${activeSceneId}';`;
       const dbResponse=await db.run(mapInsertQuery);
       const getMapImage=`SELECT map_image FROM scenes WHERE scene_id='${activeSceneId}';`;
@@ -1192,7 +1192,7 @@ app.post('/createSpaces', jsonParser,async (req, res) => {
 
     // Send a response indicating success
     const insertSpaceDetails=`INSERT INTO projectSpace (projectId,spaceName,createdAt,spaceImage)
-          VALUES('${projectId}','${spacename}','${Date.now()}','https://venkatsai.onrender.com/${imagePath}');`;
+          VALUES('${projectId}','${spacename}','${Date.now()}','https://venkatsai113-1gbj.onrender.com//${imagePath}');`;
           const dbResponse=await db.run(insertSpaceDetails);
           const selectSpaces=`SELECT * FROM projectSpace WHERE projectId='${projectId}';`;
       const spaceResponse=await db.all(selectSpaces)
